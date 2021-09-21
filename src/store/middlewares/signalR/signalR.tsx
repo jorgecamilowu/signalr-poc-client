@@ -48,7 +48,7 @@ export const signalRMiddleware =
   };
 
 export const signalRHub = new HubConnectionBuilder()
-  .withUrl("http://localhost:5000/hub/chat")
+  .withUrl("http://localhost:5000/hub/notification")
   .withAutomaticReconnect()
   .build();
 
