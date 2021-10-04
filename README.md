@@ -12,8 +12,6 @@ The middleware will then register each method passed inside the config.
 The connection hub is injected into redux actions so that communication logic can be abstracted away from components.
 
 
-## Available Scripts
-
-In the project directory, you can run:
-
-### `yarn start`
+## Set Up
+1. `yarn install`
+2. `yarn start`
