@@ -1,6 +1,6 @@
 # SignalR Proof of Concept - Client
 
-This project shows how to integrate microsoft's SignalR api with Redux Toolkit.
+This project shows how to integrate microsoft's SignalR api with Redux Toolkit. This project works in tandem with this connection hub: https://github.com/jorgecamilowu/signalr-hub-poc
 
 ## How to boostrap a connection?
 
