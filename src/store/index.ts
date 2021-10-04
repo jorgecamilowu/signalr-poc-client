@@ -1,8 +1,17 @@
-import { configureStore, PayloadAction } from "@reduxjs/toolkit";
-import { config, signalRHub, signalRMiddleware } from "./middlewares";
+import { configureStore } from "@reduxjs/toolkit";
+import {
+  methodsConfig,
+  onCloseConfig,
+  signalRHub,
+  signalRMiddleware,
+} from "./middlewares";
 import rootReducer from "./rootReducer";
 
-const signalMiddleware = signalRMiddleware(signalRHub, config);
+const signalMiddleware = signalRMiddleware(
+  signalRHub,
+  methodsConfig,
+  onCloseConfig
+);
 
 /**
  * Additional middleware should be defined in this array. Note that

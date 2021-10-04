@@ -1,21 +1,42 @@
-import { signalRMiddleware, config, signalRHub } from '../signalR';
+import { signalRMiddleware, signalRHub } from "../signalR";
 
-const create = () => {
-  const store = {
-    getState: jest.fn(),
-    dispatch: jest.fn(),
-  };
-
-  const next = jest.fn();
-
-  const invoke = (action: any) =>
-    signalRMiddleware(signalRHub, config)(store)(next)(action);
-
-  return {
-    store,
-    next,
-    invoke,
-  };
+const mockStore = {
+  dispatch: jest.fn(),
+  getState: jest.fn(),
 };
 
-it('passes through non-function action', () => {});
+const next = jest.fn();
+const mockAction = {};
+
+const mockCallback = jest.fn();
+
+const mockMethodsConfig = new Map([["Foo", mockCallback]]);
+const mockOnCloseConfig = [mockCallback];
+
+const systemUnderTest = signalRMiddleware(
+  signalRHub,
+  mockMethodsConfig,
+  mockOnCloseConfig
+);
+
+describe("Functional Tests for the SignalR middleware", () => {
+  jest.spyOn(signalRHub, "on");
+  jest.spyOn(signalRHub, "onclose");
+  describe("Tests method configs", () => {
+    beforeEach(() => {
+      systemUnderTest(mockStore)(next)(mockAction);
+    });
+    it("should register method side effects", () => {
+      expect(signalRHub.on).toHaveBeenCalledTimes(1);
+      expect(signalRHub.on).toHaveBeenNthCalledWith(
+        1,
+        "Foo",
+        expect.any(Function)
+      );
+    });
+
+    it("should register onclose side effects", () => {
+      expect(signalRHub.onclose).toHaveBeenCalledTimes(1);
+    });
+  });
+});

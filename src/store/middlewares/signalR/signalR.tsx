@@ -1,5 +1,6 @@
 /* eslint-disable */
 import { Action, Dispatch, Middleware } from "redux";
+import { ThunkAction } from "@reduxjs/toolkit";
 import { HubConnection, HubConnectionBuilder } from "@microsoft/signalr";
 import {
   appendMsg,
@@ -10,22 +11,32 @@ import {
 import { RootState } from "../../rootReducer";
 
 /**
- * T = parameters of the method exposed by the backend
+ * Action Thunk with args passed by the connection hub
+ * T = parameters of the method passed by the connection hub
  * S = shape of redux getState result
  * D = redux Dispatch
  */
-type Callback<T = any, S = any, D extends Dispatch = Dispatch> = (
+export type Callback<T = any, S = RootState, D extends Dispatch = Dispatch> = (
   args: T
 ) => (dispatch: D, getState: () => S) => void;
+
+/** Default ThunkAction */
+export type DefaultAppThunk = ThunkAction<
+  void,
+  RootState,
+  undefined,
+  Action<string>
+>;
 
 export const signalRMiddleware =
   (
     connection: HubConnection,
-    config: Map<string, Callback>
+    methodsConfig: Map<string, Callback>,
+    onCloseConfig: DefaultAppThunk[]
   ): Middleware<{}, RootState> =>
   (store) => {
-    config.forEach((callback, methodName) => {
-      // register passed configs
+    methodsConfig.forEach((callback, methodName) => {
+      /** Registers available methods for the connection hub */
       connection.on(methodName, (args) => {
         callback(args).call(
           store,
@@ -35,13 +46,16 @@ export const signalRMiddleware =
       });
     });
 
-    /**
-     * registers onclose handlers. Can be abstracted to handle
-     * dynamic "oncloseConfig" just like the above config
-     */
-    connection.onclose(() => {
-      store.dispatch(updateMsgs([]));
-      store.dispatch(updateId(""));
+    /** Register onClose side effects */
+    onCloseConfig.forEach((action) => {
+      connection.onclose(() => {
+        action.call(
+          store,
+          store.dispatch.bind(store),
+          store.getState.bind(store),
+          undefined
+        );
+      });
     });
 
     return (next: Dispatch) => (action: Action) => next(action);
@@ -52,12 +66,14 @@ export const signalRHub = new HubConnectionBuilder()
   .withAutomaticReconnect()
   .build();
 
-export const config = new Map<string, Callback>([
+/** Configure methods available for the connection hub */
+export const methodsConfig = new Map<string, Callback>([
   [
     "ReceiveNotification",
-    (notification: { code: string; description: string }) => (dispatch) => {
-      dispatch(appendMsg(notification.description));
-    },
+    (notification: { code: string; description: string }) =>
+      (dispatch: Dispatch) => {
+        dispatch(appendMsg(notification.description));
+      },
   ],
   [
     "ReceiveBroadcast",
@@ -67,3 +83,13 @@ export const config = new Map<string, Callback>([
       },
   ],
 ]);
+
+/** Configure side effects to trigger when the connection closes */
+export const onCloseConfig: DefaultAppThunk[] = [
+  (dispatch) => {
+    dispatch(updateMsgs([]));
+  },
+  (dispatch) => {
+    dispatch(updateId(""));
+  },
+];
